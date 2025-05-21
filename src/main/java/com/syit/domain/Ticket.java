@@ -1,5 +1,6 @@
 package com.syit.domain;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -10,8 +11,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name="tickets")
@@ -33,7 +36,9 @@ public class Ticket {
 	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
 	private Date creationDate;
 	private String category;
+	//private String fileAttachementPath;
 	private List<String> fileAttachementPath;
+	
 	
 	@OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL)
 	private List<TicketHistory> history;

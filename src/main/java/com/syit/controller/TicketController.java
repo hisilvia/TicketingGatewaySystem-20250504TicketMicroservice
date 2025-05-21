@@ -1,15 +1,9 @@
 package com.syit.controller;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,15 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.syit.domain.Ticket;
 import com.syit.service.TicketService;
 
 @RestController    //if using @fController -->spring-circular-view-path-error on path /hotelPost
+@RequestMapping(value="/ticket")
 public class TicketController {
-		
-	
-    
+
     @Autowired
 	TicketService ticketService;
 	
@@ -81,4 +73,26 @@ In essence, JsonNode is for handling JSON data, while ResponseEntity<String> is 
 complete HTTP responses with control over status and headers. When you need to customize the HTTP response 
 beyond just the JSON body, ResponseEntity<String> is the preferred choice.
 
+
+*/
+/*
+public JsonNode ticketResultPost(@RequestBody JsonNode node) {
+
+	System.out.println("TicketMicro-TicketController->node: " + node);
+	
+	ObjectMapper objMapper = new ObjectMapper();
+	Ticket ticket = objMapper.convertValue(node, Ticket.class);
+	Ticket addData = ticketService.save(ticket);
+	
+	//ObjectNode resNode = objMapper.createObjectNode();
+	//resNode.put("UniqueId", 101);
+	
+	System.out.println(node.get("title"));
+	System.out.println(node.get("description"));
+	//System.out.println(node.get("category"));
+	
+	JsonNode returnNode = objMapper.convertValue(addData, JsonNode.class);
+
+	return returnNode;
+}
 */
