@@ -39,10 +39,10 @@ public class TicketController {
 
 		return ResponseEntity.ok("Ticket is posted successfully");
 	}
-	 
-	@RequestMapping(value="ticketGet", method=RequestMethod.GET)
-	public List<Ticket> ticketGet(){
-		return ticketService.findAll();
+
+	@RequestMapping(value="ticketGetByName/{name}", method=RequestMethod.GET)
+	public List<Ticket> ticketGetByCreatedBy(@PathVariable String name){
+		return ticketService.findTickets(name);
 	}
 	
 	@RequestMapping(value="ticketGet/{title}", method=RequestMethod.GET)

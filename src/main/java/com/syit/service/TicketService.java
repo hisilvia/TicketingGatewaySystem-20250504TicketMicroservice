@@ -22,31 +22,32 @@ public class TicketService {
 
 	@Autowired
 	TicketRepository ticketRepo;
-	
+	    
 	@Autowired
 	TicketHistoryRepository ticketHistoryRepo;
-	/*
-	public Ticket save(Ticket t) {
-		return ticketRepo.save(t);
-	}
-	*/
+	
 	public void save(JsonNode node) {
 		Ticket ticket = new Ticket();
 		
 		//The asText() method returns the text value of a JsonNode as a String
 		ticket.setTitle(node.get("title").asText());
 		ticket.setDescription(node.get("description").asText());
+		ticket.setCategory(node.get("category").asText().toUpperCase());	
+		ticket.setPriority(node.get("priority").asText().toUpperCase());
+		ticket.setStatus(node.get("status").asText());
 		ticket.setCreatedBy(node.get("createdBy").asText());
 		ticket.setAssignee(node.get("assignee").asText());
-		ticket.setPriority(node.get("priority").asText().toUpperCase());
-		ticket.setStatus("OPEN");
+		ticket.setAssignee(null);
+		
 		
 		//set current date and time
-		//ticket.setCreationDate(new Date());
-		
+		ticket.setCreationDate(new Date());
+		TicketHistory tHistory = new TicketHistory(); 
+		tHistory.setActionDate(new Date());
+		/*
 		// Set specific date and time using SimpleDateFormat
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        TicketHistory tHistory = new TicketHistory(); 
+        
         try {
         	Date date = formatter.parse(node.get("creationDate").asText());
             ticket.setCreationDate(date);
@@ -55,9 +56,9 @@ public class TicketService {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        
+        */
 		
-		ticket.setCategory(node.get("category").asText().toUpperCase());
+		
 		
 		//check file path
 		if(node.has("fileAttachementPath") && node.get("fileAttachementPath").isArray()) {
@@ -75,14 +76,21 @@ public class TicketService {
 		tHistory.setActionBy(node.get("createdBy").asText());
 		tHistory.setComments("user created a ticket.");
 		ticketHistoryRepo.save(tHistory);
-		
-		
-		
-		
+	
 	}
 	
 	public List<Ticket> findAll(){
 		return ticketRepo.findAll();
+	}
+	
+	public List<Ticket> findTickets(String name){
+		//List<Ticket> tickets = ticketRepo.findByCreatedBy(name);
+		
+		return ticketRepo.findByCreatedBy(name);
+	}
+	
+	public List<Ticket> findByStatus(String status){
+		return ticketRepo.findByStatus(status);
 	}
 	
 	public Ticket findById(long tId) {
@@ -103,6 +111,8 @@ public class TicketService {
 		ticketRepo.deleteById(tId);
 		return "Deleted ticketId: "+tId;
 	}
+	
+	
 }
 
 /*
