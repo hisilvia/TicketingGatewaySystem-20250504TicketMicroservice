@@ -69,8 +69,6 @@ public class TicketService {
 		
 		ticketRepo.save(ticket);
 		
-		
-		
 		tHistory.setTicket(ticket);
 		tHistory.setAction("CREATED");
 		tHistory.setActionBy(node.get("createdBy").asText());
@@ -83,9 +81,7 @@ public class TicketService {
 		return ticketRepo.findAll();
 	}
 	
-	public List<Ticket> findTickets(String name){
-		//List<Ticket> tickets = ticketRepo.findByCreatedBy(name);
-		
+	public List<Ticket> findTicketsByCreatedBy(String name){
 		return ticketRepo.findByCreatedBy(name);
 	}
 	
@@ -96,11 +92,10 @@ public class TicketService {
 	public Ticket findById(long tId) {
 		Optional<Ticket> ticket = ticketRepo.findById(tId);
 		
-		if(ticket.isPresent()) {
+		if(ticket.isPresent())
 			return ticket.get();
-		}else
-			throw new RuntimeException("Did not find Ticket_id - " + tId);
-		
+		else
+			throw new RuntimeException("Did not find Ticket_id - " + tId);	
 	}
 	
 	public Ticket findByTitle(String title) {
@@ -112,12 +107,51 @@ public class TicketService {
 		return "Deleted ticketId: "+tId;
 	}
 	
+	//update
+	/*
+	public Ticket updateTicket(Ticket ticket) {
+		Ticket existingTicket = ticketRepo.findById(ticket.getId()).orElseThrow(() -> new RuntimeException("Ticket not found"));
+		
+		//update -->must have several set
+		existingTicket.setTitle(ticket.getTitle());
+		existingTicket.setDescription(ticket.getDescription());
+		existingTicket.setCategory(ticket.getCategory());
+		existingTicket.setPriority(ticket.getPriority());
+		existingTicket.setStatus(ticket.getStatus());
+		existingTicket.setAssignee(ticket.getAssignee());
+		return ticketRepo.save(existingTicket);
+	}
+	*/
 	
+	public void updateTicket(JsonNode node) {
+		Ticket existingTicket = ticketRepo.findById(node.get("id").asLong()).orElseThrow(() -> new RuntimeException("Ticket not found"));
+	
+		//existingTicket.setPriority(node.get("priority").asText().toUpperCase());
+		existingTicket.setStatus(node.get("status").asText());
+		if(node.get("assignee")==null)
+			existingTicket.setAssignee(null);
+		else 
+			existingTicket.setAssignee(node.get("assignee").asText());
+		
+		TicketHistory history = new TicketHistory();
+		history.setTicket(existingTicket);
+	
+		String status = node.get("status").asText().toUpperCase();
+		
+		if(status.equals("APPROVED"))
+			history.setComments("Ticket is approved by manager");
+				
+		if(status.equals("REJECTED"))
+			history.setComments("Ticket is rejected by manager");
+		
+		if(status.equals("ROSOLUTION"))
+			history.setComments("Ticket is resolved by admin");
+	
+		ticketRepo.save(existingTicket);
+	}
+
 }
 
-/*
-
-*/
 /*JsonNode provides numerous methods for inspecting and extracting data.
 1.isXxx() methods:
   These methods check the node type, such as isObject(), isArray(), isTextual(), isNumber(), isNull(), 
@@ -142,7 +176,4 @@ public class TicketService {
 
 7.findValue(fieldName):
   Searches for a specific field and returns the associated JsonNode or null if not found.
-
-
-
 */

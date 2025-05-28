@@ -8,6 +8,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,9 +22,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 
 @Entity
-//@SQLDelete(sql = "UPDATE product SET deleted = true WHERE id = ?") // Customizing the delete query
-//@Where(clause = "deleted = false") // Filtering deleted records in read queries
-@Table(name="tickets")
+//@Table(name="tickets")
 public class Ticket {
 
 	@Id
@@ -38,6 +38,7 @@ public class Ticket {
 	private String priority;     // LOW, MEDIUM, HIGH
 	private String status;       //OPEN, PENDING_APPROVAL, APPROVED, REJECTED, 
 	
+	@Column(name = "creation_date", updatable = false)
 	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
 	private Date creationDate;
 	private String category;
@@ -47,8 +48,14 @@ public class Ticket {
 	
 	
 	@OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL)
+	@JsonManagedReference
 	private List<TicketHistory> history;
 	
+	/*JsonManagedReference ->solve
+	 * converter — HttpMessageNotWritableException: Could not write JSON 
+	 * Because Document nesting depth (1001) exceeds the maximum allowed 
+	 * (1000, from `StreamWriteConstraints.getMaxNestingDepth()`)]
+	 */
 	public Ticket() {
 		super();
 	}

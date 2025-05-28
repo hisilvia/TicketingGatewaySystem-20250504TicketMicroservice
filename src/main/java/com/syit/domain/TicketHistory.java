@@ -1,7 +1,11 @@
 package com.syit.domain;
 
 import java.util.Date;
+import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -11,7 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name="tickethistories")
+@Table(name="ticket_history")
 public class TicketHistory {
 
 	@Id
@@ -20,10 +24,13 @@ public class TicketHistory {
 	
 	@ManyToOne    //one ticket can have multiple histories.
 	@JoinColumn(name = "ticket_id")
+	@JsonBackReference   //Important->without it, there are many ticket.history in table ticket;
 	private Ticket ticket;
 	private String action;  //CREATED, APPROVED, REJECTED, ASSIGNED, RESOLVED, CLOSED, REOPENED
 	//private Employee actionBy;
 	private String actionBy;
+	
+	@Column(name = "action_date", nullable = false, updatable = false)
 	private Date actionDate;
 	private String comments;
 	
