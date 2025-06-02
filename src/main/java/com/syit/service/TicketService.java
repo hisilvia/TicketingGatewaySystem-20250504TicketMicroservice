@@ -2,6 +2,8 @@ package com.syit.service;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.syit.domain.Ticket;
 import com.syit.domain.TicketHistory;
+import com.syit.model.EmailRequest;
 import com.syit.repository.TicketHistoryRepository;
 import com.syit.repository.TicketRepository;
 
@@ -25,6 +28,9 @@ public class TicketService {
 	    
 	@Autowired
 	TicketHistoryRepository ticketHistoryRepo;
+	
+	@Autowired
+	EmailService emailService;
 	
 	public void save(JsonNode node) {
 		Ticket ticket = new Ticket();
@@ -132,24 +138,76 @@ public class TicketService {
 			existingTicket.setAssignee(null);
 		else 
 			existingTicket.setAssignee(node.get("assignee").asText());
-		
-		TicketHistory history = new TicketHistory();
-		history.setTicket(existingTicket);
-	
-		String status = node.get("status").asText().toUpperCase();
-		
-		if(status.equals("APPROVED"))
-			history.setComments("Ticket is approved by manager");
-				
-		if(status.equals("REJECTED"))
-			history.setComments("Ticket is rejected by manager");
-		
-		if(status.equals("ROSOLUTION"))
-			history.setComments("Ticket is resolved by admin");
 	
 		ticketRepo.save(existingTicket);
+		
 	}
 
+	public void updateTicketHistory(JsonNode node) {
+		Ticket ticket = ticketRepo.findById(node.get("id").asLong()).orElseThrow(() -> new RuntimeException("Ticket not found"));
+		
+		//Add update ticket info to TicketHistory
+		TicketHistory history = new TicketHistory();
+		history.setTicket(ticket);
+	
+		String status = node.get("status").asText().toUpperCase();
+		history.setAction(status);
+		
+		if(node.get("actionBy") == null)
+			history.setActionBy(null);
+		else
+			history.setActionBy(node.get("actionBy").asText());
+		
+		history.setActionDate(new Date());
+		//Add comments
+		if(status.equals("APPROVED"))
+			history.setComments("Ticket " + ticket.getId() +" was approved by manager.");
+				
+		if(status.equals("REJECTED"))
+			history.setComments("Ticket " + ticket.getId() +" was  rejected by manager");
+		
+		if(status.equals("RESOLVED"))
+			history.setComments("Ticket " + ticket.getId() +" was resolved by admin");
+		
+		if(status.equals("REOPENED"))
+			history.setComments("Ticket " + ticket.getId() +" was reopended by user");
+		
+		if(status.equals("CLOSED"))
+			history.setComments("Ticket " + ticket.getId() +" was closed");
+		
+		if(status.equals("ASSIGNED"))
+			history.setComments("Ticket " + ticket.getId() +" was assigned");
+		
+		ticketHistoryRepo.save(history);
+	
+	}
+	
+	public List<TicketHistory> getTicketHistoryById(long id){
+		return ticketHistoryRepo.findByTicketId(id);
+	}
+	
+	//do CRON job: Check tickets pending >7 days==>I check CREATE instead of pending
+	public void checkPendingTickets() {
+		LocalDateTime sevenDaysAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
+		List<Ticket> pendingTickets = ticketRepo.findByStatusAndCreationDateBefore("CREATE", sevenDaysAgo);
+		
+		EmailRequest er = new EmailRequest();
+		if(!pendingTickets.isEmpty()) {
+			//send an email to manager	
+			er.setRecipientEmail("silviajava4@gmail.com");  //assume manager's email
+			er.setSubject("Pending ticket over 7 days.") ;
+			er.setMessage("Please take care of pending ticket soon.");
+			emailService.sendTextEmail(er);
+	
+			System.out.println("Found " + pendingTickets.size() + " pending tickets older than 7 days.");
+		}
+	}
+	
+	
+	
+	
+	
+	
 }
 
 /*JsonNode provides numerous methods for inspecting and extracting data.

@@ -1,5 +1,6 @@
 package com.syit.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,14 +19,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>{
 	//Ticket updateTicket(long id, Ticket ticket);
 	
 	
-	//@Modifying(clearAutomatically = true, flushAutomatically = true)
-    //@Query("DELETE FROM ticket_gateway.tickets t WHERE t.id = :id")
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Ticket t WHERE t.id = :id")
 	public String deleteById(long id);
 	
 	//List<Ticket> findByStatusAndAssignee(String status, String name);
 
-	//List<Ticket> findByManagerIdAndStatusIn(long id, List<String> statuses);
-	
-	//List<Ticket> findByStatusAndCreationDateBefore(String status, LocalDate cutoff);
+	List<Ticket> findByStatusAndCreationDateBefore(String status, LocalDateTime cutoff);
 	
 }

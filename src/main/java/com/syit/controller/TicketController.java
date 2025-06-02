@@ -3,6 +3,7 @@ package com.syit.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.syit.domain.Ticket;
+import com.syit.domain.TicketHistory;
+import com.syit.model.EmailRequest;
+import com.syit.service.EmailService;
 import com.syit.service.TicketService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -22,15 +26,26 @@ import jakarta.persistence.EntityNotFoundException;
 @RequestMapping(value="/ticket")
 public class TicketController {
 
+	@Value("${pdf.save.path}")
+	private String pdfSavePath;
+	
     @Autowired
 	TicketService ticketService;
+    
+    @Autowired
+	EmailService emailService;
 	
 	@RequestMapping(value="/ticketPost", method=RequestMethod.POST)
 	public ResponseEntity<String> hotelResultPost(@RequestBody JsonNode node) {
 
 		System.out.println("TicketMicro-TicketController->node: " + node);
-		
+		EmailRequest er = new EmailRequest();
+		er.setRecipientEmail("silviajava4@gmail.com");  //assume it's manager's email
+		er.setSubject("New ticket need to be approved.") ;
+		er.setMessage("Please approve the ticket.");
+	
 		ticketService.save(node);
+		emailService.sendTextEmail(er);
 		
 		//ObjectNode resNode = objMapper.createObjectNode();
 		//resNode.put("UniqueId", 101);
@@ -89,6 +104,40 @@ public class TicketController {
 	public ResponseEntity<String> updateTicketById(@RequestBody JsonNode node) {
 		try {
 			ticketService.updateTicket(node);
+			ticketService.updateTicketHistory(node);
+			
+			String status = node.get("status").asText();
+			EmailRequest er = new EmailRequest();
+			if(status.equals("APPROVED")) {	
+				
+				er.setRecipientEmail("silviajava4@gmail.com");  //assume admin's email
+				er.setSubject("New approved ticket need to be assigned.") ;
+				er.setMessage("Please assign the ticket.");
+				emailService.sendTextEmail(er);
+			}else if(status.equals("REJECTED")) {
+				
+				er.setRecipientEmail("silviamatthews2018@gmail.com");  //assume user's email
+				er.setSubject("The ticket was rejected.") ;
+				er.setMessage("Sorry, your ticket was rejected. Please read the information, then post it again.");
+				emailService.sendTextEmail(er);
+			}else if(status.equals("RESOLVED")) {
+				
+				er.setRecipientEmail("silviajava4@gmail.com");  //assume user's email
+				er.setSubject("The ticket was resolved.") ;
+				er.setMessage("Please check the ticket in detail.");
+				
+				try {
+					//Generate pdf and send it
+					String result = emailService.sendResolutionWithPdf(node.get("id").asLong(), er, pdfSavePath);
+					System.out.println("Result: "+result);
+				}catch (Exception e) {
+					System.out.println(e.getMessage());
+				}
+				
+				
+			}
+			//emailService.sendTextEmail(er);
+	
 			return ResponseEntity.ok("Ticket is updated.");
 		}catch(EntityNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -103,6 +152,23 @@ public class TicketController {
 		ticketService.deleteById(id);
 	}
 	
+	@RequestMapping(value="/ticketHistoryPost", method=RequestMethod.POST)
+	public ResponseEntity<String> ticketHistoryPost(@RequestBody long id) {	
+		List<TicketHistory> allTicketHistory = ticketService.getTicketHistoryById(id);
+		ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			String json = objectMapper.writeValueAsString(allTicketHistory);
+			return ResponseEntity.ok(json);
+		} catch (Exception e) {
+			return ResponseEntity.noContent().build();
+		}
+	}
+	
+	@RequestMapping(value="/ticketHistoryGetById/{id}", method=RequestMethod.GET)
+	public ResponseEntity<List<TicketHistory>> ticketHistoryGet(@PathVariable long id) {	
+		List<TicketHistory> allTicketHistory = ticketService.getTicketHistoryById(id);
+		return ResponseEntity.ok(allTicketHistory);
+	}
 	
 }
 //https://www.baeldung.com/java-jsonnode-astext-vs-tostring
