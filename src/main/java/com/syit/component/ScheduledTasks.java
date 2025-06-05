@@ -17,5 +17,11 @@ public class ScheduledTasks {
     public void checkTicketsPendingForMoreThanSevenDays() {
         ticketService.checkPendingTickets();
         System.out.println("check for 7 days.");
-    }    
+    }   
+    
+    @Scheduled(cron = "0 08 * * * ?")
+    public void checkTicketsResolvedForMoreThanFiveDays() {
+    	ticketService.checkActionDateFiveDaysAgo();
+    	 System.out.println("check for 5 days.");
+    }
 }

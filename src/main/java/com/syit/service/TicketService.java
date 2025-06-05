@@ -2,7 +2,11 @@ package com.syit.service;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,6 +22,8 @@ import com.syit.domain.TicketHistory;
 import com.syit.model.EmailRequest;
 import com.syit.repository.TicketHistoryRepository;
 import com.syit.repository.TicketRepository;
+
+import jakarta.transaction.Transactional;
 
 
 @Service
@@ -203,6 +209,82 @@ public class TicketService {
 		}
 	}
 	
+	//do CRON job: Check action and actionDate in ticketHistory->auto-close if
+	@Transactional   //==>allow lazy collection to be retrieved from the db, otherwise have to keep the session open till the end of the execution.
+	public void checkActionDateFiveDaysAgo() {
+		
+		LocalDate fiveDaysAgo = LocalDate.now().minusDays(5);
+		List<Ticket> resolvedTickets = ticketRepo.findByStatus("RESOLVED");
+		//System.out.println("resolvedTickets: "+resolvedTickets);
+		EmailRequest er = new EmailRequest();
+		TicketHistory tt = new TicketHistory();
+		if(!resolvedTickets.isEmpty()) {
+			for(int i=0; i<resolvedTickets.size(); i++) {
+				List<TicketHistory> th = resolvedTickets.get(i).getHistory();
+				System.out.println("resolvedTickets.get("+i +").getId(): "+resolvedTickets.get(i).getId());
+				//System.out.println("th.getLast()"+th.g);
+
+				for(TicketHistory t : th) {
+					
+					
+					if(!t.getAction().contains("AUTO-CLOSE")) {
+						//Need to convert Date to LocalDate
+						System.out.println("t.getActionDate: "+t.getActionDate());
+						
+						//1.Convert Date to Instance
+						Instant instant = t.getActionDate().toInstant();
+						
+						//2.Convert Instant to ZonedDateTime using the system's default time zone
+				        ZonedDateTime zdt = instant.atZone(ZoneId.systemDefault());
+
+				        //3.Extract LocalDate from ZonedDateTime
+				        LocalDate localDate = zdt.toLocalDate();
+				        
+						if(t.getAction().contains("RESOLVED") && localDate.isBefore(fiveDaysAgo)) {
+							System.out.println("Ticket ID: "+resolvedTickets.get(i).getId()+"TicketHistory ID"+t.getId());
+							System.out.println("The target date is exactly 5 days ago.");
+							//Set the status to close
+							resolvedTickets.get(i).setStatus("AUTO-CLOSE");
+							tt.setTicket(resolvedTickets.get(i));
+							tt.setAction("AUTO-CLOSE");
+							tt.setActionDate(new Date());
+							tt.setComments("Ticket "+resolvedTickets.get(i).getId()+" was closed automatically.");
+							tt.setActionBy(t.getActionBy());
+							
+							
+							ticketHistoryRepo.save(tt);
+							//Send an email
+							er.setRecipientEmail("silviajava4@gmail.com");  //assume manager's email
+							er.setSubject("Resolved Ticket is closed automatically.") ;
+							er.setMessage("The resolved ticket id: " + resolvedTickets.get(i).getId() + " closed automatically");
+							emailService.sendTextEmail(er);
+					
+							//System.out.println("Found " + resolvedTickets.size() + " resolved-tickets closed automatically.");
+						}
+					}
+					
+				}
+			}
+			
+		}
+		
+		
+		//List<TicketHistory> resolvedTickets = ticketHistoryRepo.findByActionAndActionDateBefore("RESOLVED", fiveDaysAgo);
+		/*
+		System.out.println(resolvedTickets.get(0));
+		EmailRequest er = new EmailRequest();
+		if(!resolvedTickets.isEmpty()) {
+			System.out.println("resolvedTickets.get(0): "+ resolvedTickets.get(0));
+			//send an email to manager	
+			er.setRecipientEmail("silviajava4@gmail.com");  //assume manager's email
+			er.setSubject("Resolved Ticket is closed automatically.") ;
+			er.setMessage("Please take care of pending ticket soon.");
+			emailService.sendTextEmail(er);
+	
+			System.out.println("Found " + resolvedTickets.size() + " resolved-tickets closed automatically.");
+		}
+		*/
+	}
 	
 	
 	
